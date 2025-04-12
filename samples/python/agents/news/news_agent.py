@@ -1,4 +1,6 @@
+from typing import Literal
 from langchain_core.messages import SystemMessage, HumanMessage
+from pydantic import BaseModel
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -17,6 +19,11 @@ tools_names = {t.name: t for t in tools}
 
 memory = MemorySaver()
 
+class ResponseFormat(BaseModel):
+    """Respond to the user in this format."""
+    status: Literal["input_required", "completed", "error"] = "input_required"
+    message: str
+
 class NewsAgent:
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain"]
 
@@ -24,8 +31,65 @@ class NewsAgent:
         config = {"configurable": {"thread_id": sessionId}}
 
         news_ctx = NewsContext(rss_feed=query)
-        return start_agent(news_ctx=news_ctx, config=config)
+        self.start(news_ctx=news_ctx, config=config)
+
+        return self.get_agent_response(config=config)
     
+    def start(self, news_ctx: NewsContext, config:dict): 
+        graph_builder=StateGraph(GraphState)
+        graph_builder.add_node("get_rss_feed", get_rss_feed)
+        graph_builder.add_node("get_rss_links", get_rss_links)
+        graph_builder.add_node("load_links", load_links)
+        graph_builder.add_node("generate_summary", generate_summary)
+        graph_builder.add_node("execute_tools", execute_tools)
+        graph_builder.add_node("get_categories", get_categories)
+
+        graph_builder.add_edge(START, "get_rss_feed")  
+        graph_builder.add_edge("get_rss_feed", "get_rss_links" )
+        graph_builder.add_edge("get_rss_links", "load_links")
+        graph_builder.add_edge("load_links", "generate_summary")
+        graph_builder.add_edge("generate_summary", "get_categories")
+        graph_builder.add_edge("get_categories", "execute_tools")
+        graph_builder.add_edge("execute_tools", END)
+        
+        self.graph=graph_builder.compile(checkpointer=memory)
+
+        print(self.graph.get_graph().draw_ascii())
+
+        self.graph.invoke({"data": news_ctx.rss_feed}, config)
+    
+    def get_agent_response(self, config):
+        current_state = self.graph.get_state(config)     
+        structured_response = current_state.values.get('structured_response')
+
+        print(f"CURRENT Status: {structured_response.status}")
+      
+        if structured_response and isinstance(structured_response, ResponseFormat): 
+            if structured_response.status == "input_required":
+                return {
+                    "is_task_complete": False,
+                    "require_user_input": True,
+                    "content": structured_response.message
+                }
+            elif structured_response.status == "error":
+                return {
+                    "is_task_complete": False,
+                    "require_user_input": True,
+                    "content": structured_response.message
+                }
+            elif structured_response.status == "completed":
+                return {
+                    "is_task_complete": True,
+                    "require_user_input": False,
+                    "content": structured_response.message
+                }
+
+        return {
+            "is_task_complete": False,
+            "require_user_input": True,
+            "content": "We are unable to process your request at the moment. Please try again.",
+        }
+        
 def generate_summary(state: GraphState):
     model = init_llm()
 
@@ -79,31 +143,10 @@ def execute_tools(state: GraphState):
 
         article["tool_result"] = tools_names[article["tool_name"]].invoke(article["tool_argument"])
               
-    return {"articles": articles}
+    res = [NewsResult(r).to_dict() for r in articles]          
+    structured_response = ResponseFormat(message=json.dumps(res), status="completed")       
 
-def start_agent(news_ctx: NewsContext, config:dict): 
-    graph_builder=StateGraph(GraphState)
-    graph_builder.add_node("get_rss_feed", get_rss_feed)
-    graph_builder.add_node("get_rss_links", get_rss_links)
-    graph_builder.add_node("load_links", load_links)
-    graph_builder.add_node("generate_summary", generate_summary)
-    graph_builder.add_node("execute_tools", execute_tools)
-    graph_builder.add_node("get_categories", get_categories)
+    return {"structured_response": structured_response}
 
-    graph_builder.add_edge(START, "get_rss_feed")  
-    graph_builder.add_edge("get_rss_feed", "get_rss_links" )
-    graph_builder.add_edge("get_rss_links", "load_links")
-    graph_builder.add_edge("load_links", "generate_summary")
-    graph_builder.add_edge("generate_summary", "get_categories")
-    graph_builder.add_edge("get_categories", "execute_tools")
-    graph_builder.add_edge("execute_tools", END)
-    
-    graph=graph_builder.compile(checkpointer=memory)
 
-    print(graph.get_graph().draw_ascii())
-
-    result = graph.invoke({"data": news_ctx.rss_feed}, config)
-    
-    r = [NewsResult(r).to_dict() for r in result["articles"]]
-
-    return {"is_task_complete": True, "require_user_input": False, "content": json.dumps(obj=r)}
+        

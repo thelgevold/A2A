@@ -20,5 +20,5 @@ class Article:
  
 class GraphState(TypedDict):
     data: str
-    filter: list[str]
     articles: list[dict]
+    structured_response: dict
