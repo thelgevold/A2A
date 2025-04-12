@@ -26,7 +26,7 @@ def load_links(state: GraphState):
                     file.write(content)
 
         article["content"] = extract_text_from_html_document(content)
-       
+
     return {"articles": articles, "messages": [AIMessage(content="Completed retrieving rss links")]}  
 
 def sanitize_filename(title):

@@ -147,8 +147,6 @@ class AgentTaskManager(InMemoryTaskManager):
 
             await self.upsert_task(request.params)
 
-            print(f"Setting push notification info {request.params.pushNotification}")    
-
             if request.params.pushNotification:
                 if not await self.set_push_notification_info(request.params.id, request.params.pushNotification):
                     return JSONRPCResponse(id=request.id, error=InvalidParamsError(message="Push notification URL is invalid"))

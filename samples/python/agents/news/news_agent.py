@@ -123,7 +123,7 @@ def generate_summary(state: GraphState):
         summary = model.invoke(request)
         article["summary"] = summary
         
-    return {"articles": articles}
+    return {"articles": articles, "messages": [AIMessage(content="Completed getting article summaries from LLM")]}
 
 def get_categories(state: GraphState):
     model = init_llm_with_tool_calling()
@@ -138,8 +138,8 @@ def get_categories(state: GraphState):
         request = [SystemMessage(content=content)]
         categories = model.invoke(request)
         article["tool_call_raw"] = categories.content
-        
-    return {"tool": content}
+
+    return {"tool": content, "messages": [ToolMessage(content="Completed getting tool calls from LLM", tool_call_id="567")]}
 
 def parse_tool_call(article):
         start_index = article["tool_call_raw"].find("{")

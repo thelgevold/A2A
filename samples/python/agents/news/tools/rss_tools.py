@@ -9,7 +9,6 @@ def get_rss_feed(state: GraphState):
     role, url = state['messages'][0]
     response = requests.get(url)
 
-    print("get_rss_feed completed")
     return {"data": response.text, "messages": [AIMessage(content="Completed getting RSS feed")]}
 
 def get_rss_links(state: GraphState):
@@ -29,5 +28,4 @@ def get_rss_links(state: GraphState):
         
         rss_data.append(article)
 
-    print("get_rss_links completed")
     return {"articles": rss_data, "messages": [AIMessage(content="Completed getting RSS links")]}
