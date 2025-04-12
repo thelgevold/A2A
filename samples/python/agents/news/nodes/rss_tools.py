@@ -3,7 +3,7 @@ import requests
 import json
 from langchain_core.messages import AIMessage
 
-from state import GraphState, Article
+from state import GraphState
 
 def get_rss_feed(state: GraphState):
     role, url = state['messages'][0]

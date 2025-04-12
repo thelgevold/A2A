@@ -4,7 +4,7 @@ import os
 from langchain_core.messages import AIMessage
 
 from state import GraphState
-from tools.text_tools import extract_text_from_html_document
+from nodes.text_tools import extract_text_from_html_document
 
 def load_links(state: GraphState):
     articles = state["articles"]

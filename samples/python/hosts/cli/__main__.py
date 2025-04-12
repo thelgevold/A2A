@@ -9,7 +9,7 @@ import urllib
 @click.command()
 @click.option("--agent", default="http://localhost:10001")
 @click.option("--session", default=0)
-@click.option("--history", default=False)
+@click.option("--history", default=True)
 @click.option("--use_push_notifications", default=True)
 @click.option("--push_notification_receiver", default="http://localhost:5000")
 async def cli(agent, session, history, use_push_notifications: bool, push_notification_receiver: str):
