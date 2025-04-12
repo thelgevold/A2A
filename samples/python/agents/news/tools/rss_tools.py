@@ -1,14 +1,16 @@
 import xml.etree.ElementTree as ET
 import requests
 import json
+from langchain_core.messages import AIMessage
 
 from state import GraphState, Article
 
 def get_rss_feed(state: GraphState):
-    url = state['data']
+    role, url = state['messages'][0]
     response = requests.get(url)
 
-    return {"data": response.text}
+    print("get_rss_feed completed")
+    return {"data": response.text, "messages": [AIMessage(content="Completed getting RSS feed")]}
 
 def get_rss_links(state: GraphState):
     rss = state['data']
@@ -27,4 +29,5 @@ def get_rss_links(state: GraphState):
         
         rss_data.append(article)
 
-    return {"articles": rss_data}
+    print("get_rss_links completed")
+    return {"articles": rss_data, "messages": [AIMessage(content="Completed getting RSS links")]}

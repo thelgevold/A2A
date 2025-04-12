@@ -19,6 +19,7 @@ class Article:
         self.link = link
  
 class GraphState(TypedDict):
-    data: str
+    messages: str
     articles: list[dict]
     structured_response: dict
+    data: str

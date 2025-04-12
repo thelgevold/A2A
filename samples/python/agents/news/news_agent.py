@@ -1,8 +1,9 @@
-from typing import Literal
+from typing import Any, AsyncIterable, Dict, Literal
 from langchain_core.messages import SystemMessage, HumanMessage
 from pydantic import BaseModel
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import AIMessage, ToolMessage
 
 from model import init_llm_with_tool_calling, init_llm
 from tools.rss_tools import get_rss_links, get_rss_feed
@@ -27,15 +28,7 @@ class ResponseFormat(BaseModel):
 class NewsAgent:
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain"]
 
-    def invoke(self, query, sessionId) -> str:
-        config = {"configurable": {"thread_id": sessionId}}
-
-        news_ctx = NewsContext(rss_feed=query)
-        self.start(news_ctx=news_ctx, config=config)
-
-        return self.get_agent_response(config=config)
-    
-    def start(self, news_ctx: NewsContext, config:dict): 
+    def __init__(self):
         graph_builder=StateGraph(GraphState)
         graph_builder.add_node("get_rss_feed", get_rss_feed)
         graph_builder.add_node("get_rss_links", get_rss_links)
@@ -56,7 +49,39 @@ class NewsAgent:
 
         print(self.graph.get_graph().draw_ascii())
 
+    def invoke(self, query, sessionId) -> str:
+        config = {"configurable": {"thread_id": sessionId}}
+
+        news_ctx = NewsContext(rss_feed=query)
         self.graph.invoke({"data": news_ctx.rss_feed}, config)
+      
+        return self.get_agent_response(config=config)
+    
+    async def stream(self, query, sessionId) -> AsyncIterable[Dict[str, Any]]:
+        inputs = {"messages": [("user", query)]}
+        config = {"configurable": {"thread_id": sessionId}}
+
+        for item in self.graph.stream(inputs, config, stream_mode="values"):
+            message = item["messages"][-1]
+          
+            if (
+                isinstance(message, AIMessage)
+                #and message.tool_calls
+                #and len(message.tool_calls) > 0
+            ):
+                yield {
+                    "is_task_complete": False,
+                    "require_user_input": False,
+                    "content": message.content,
+                }
+            elif isinstance(message, ToolMessage):
+                yield {
+                    "is_task_complete": False,
+                    "require_user_input": False,
+                    "content": "Processing the exchange rates..",
+                }            
+        
+        yield self.get_agent_response(config)
     
     def get_agent_response(self, config):
         current_state = self.graph.get_state(config)     
@@ -132,8 +157,6 @@ def parse_tool_call(article):
         article["tool_name"] = data.get("name")
         categories = data.get("arguments", {}).get("article_categories")
         article["tool_argument"] = {"article_categories": categories}
-
-        print(f"RAW tool calls: {article["tool_call_raw"]}")
 
 def execute_tools(state: GraphState):
     articles = state["articles"]

@@ -1,6 +1,7 @@
 import requests
 import re
 import os
+from langchain_core.messages import AIMessage
 
 from state import GraphState
 from tools.text_tools import extract_text_from_html_document
@@ -26,7 +27,7 @@ def load_links(state: GraphState):
 
         article["content"] = extract_text_from_html_document(content)
        
-    return {"articles": articles}  
+    return {"articles": articles, "messages": [AIMessage(content="Completed retrieving rss links")]}  
 
 def sanitize_filename(title):
     file = re.sub(r'[\\/*?:"<>|]', "", title)

@@ -31,7 +31,7 @@ class A2AClient:
         else:
             raise ValueError("Must provide either agent_card or url")
 
-        print(f"self.url {self.url}")
+
     async def send_task(self, payload: dict[str, Any]) -> SendTaskResponse:
         request = SendTaskRequest(params=payload)
         return SendTaskResponse(**await self._send_request(request))
