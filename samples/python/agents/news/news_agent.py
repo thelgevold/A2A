@@ -64,11 +64,7 @@ class NewsAgent:
         for item in self.graph.stream(inputs, config, stream_mode="values"):
             message = item["messages"][-1]
           
-            if (
-                isinstance(message, AIMessage)
-                #and message.tool_calls
-                #and len(message.tool_calls) > 0
-            ):
+            if isinstance(message, AIMessage):
                 yield {
                     "is_task_complete": False,
                     "require_user_input": False,
@@ -78,7 +74,7 @@ class NewsAgent:
                 yield {
                     "is_task_complete": False,
                     "require_user_input": False,
-                    "content": "Processing the exchange rates..",
+                    "content": message.content,
                 }            
         
         yield self.get_agent_response(config)
@@ -86,9 +82,7 @@ class NewsAgent:
     def get_agent_response(self, config):
         current_state = self.graph.get_state(config)     
         structured_response = current_state.values.get('structured_response')
-
-        print(f"CURRENT Status: {structured_response.status}")
-      
+ 
         if structured_response and isinstance(structured_response, ResponseFormat): 
             if structured_response.status == "input_required":
                 return {
@@ -166,10 +160,11 @@ def execute_tools(state: GraphState):
 
         article["tool_result"] = tools_names[article["tool_name"]].invoke(article["tool_argument"])
               
-    res = [NewsResult(r).to_dict() for r in articles]          
-    structured_response = ResponseFormat(message=json.dumps(res), status="completed")       
+    res = [NewsResult(r).to_dict() for r in articles]    
+    res_json = json.dumps(res)  
+    structured_response = ResponseFormat(message=res_json, status="completed")       
 
-    return {"structured_response": structured_response}
+    return {"messages": [ToolMessage(artifact=res, content="Completed calling tools to categorize articles", tool_call_id="123")], "structured_response": structured_response}
 
 
         
