@@ -44,13 +44,14 @@ class AgentTaskManager(InMemoryTaskManager):
     async def _run_streaming_agent(self, request: SendTaskStreamingRequest):
         task_send_params: TaskSendParams = request.params
         query = self._get_user_query(task_send_params)
-
+     
         try:
             async for item in self.agent.stream(query, task_send_params.sessionId):
                 is_task_complete = item["is_task_complete"]
                 require_user_input = item["require_user_input"]
                 artifact = None
                 message = None
+
                 parts = [{"type": "text", "text": item["content"]}]
                 end_stream = False
 
@@ -72,8 +73,9 @@ class AgentTaskManager(InMemoryTaskManager):
                     task_status,
                     None if artifact is None else [artifact],
                 )
-                await self.send_task_notification(latest_task)
 
+                await self.send_task_notification(latest_task)
+             
                 if artifact:
                     task_artifact_update_event = TaskArtifactUpdateEvent(
                         id=task_send_params.id, artifact=artifact
@@ -91,7 +93,7 @@ class AgentTaskManager(InMemoryTaskManager):
                 )
 
         except Exception as e:
-            logger.error(f"An error occurred while streaming the response: {e}")
+            logger.error(f"An error occurred while streaming the response: {e}", exc_info=True)
             await self.enqueue_events_for_sse(
                 task_send_params.id,
                 InternalError(message=f"An error occurred while streaming the response: {e}")                
@@ -101,6 +103,7 @@ class AgentTaskManager(InMemoryTaskManager):
         self, request: Union[SendTaskRequest, SendTaskStreamingRequest]
     ) -> JSONRPCResponse | None:
         task_send_params: TaskSendParams = request.params
+        print("task_send_params", task_send_params)
         if not utils.are_modalities_compatible(
             task_send_params.acceptedOutputModes, CurrencyAgent.SUPPORTED_CONTENT_TYPES
         ):
@@ -180,6 +183,9 @@ class AgentTaskManager(InMemoryTaskManager):
         self, request: SendTaskRequest, agent_response: dict
     ) -> SendTaskResponse:
         """Processes the agent's response and updates the task store."""
+        
+        print("RUNNING _process_agent_response")
+        
         task_send_params: TaskSendParams = request.params
         task_id = task_send_params.id
         history_length = task_send_params.historyLength
@@ -200,6 +206,7 @@ class AgentTaskManager(InMemoryTaskManager):
         )
         task_result = self.append_task_history(task, history_length)
         await self.send_task_notification(task)
+        print(f"Here is the task result {task_result}")
         return SendTaskResponse(id=request.id, result=task_result)
     
     def _get_user_query(self, task_send_params: TaskSendParams) -> str:

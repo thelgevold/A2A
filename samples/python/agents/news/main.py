@@ -1,8 +1,8 @@
 from common.server import A2AServer
-from common.types import AgentCard, AgentCapabilities, AgentSkill, MissingAPIKeyError
+from common.types import AgentCard, AgentCapabilities, AgentSkill
 from common.utils.push_notification_auth import PushNotificationSenderAuth
-from agents.langgraph.task_manager import AgentTaskManager
-from agents.langgraph.agent import CurrencyAgent
+from agents.news.task_manager import AgentTaskManager
+from agents.news.news_agent import NewsAgent
 import click
 import os
 import logging
@@ -12,25 +12,25 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option("--host", "host", default="localhost")
-@click.option("--port", "port", default=10000)
+@click.option("--port", "port", default=10001)
 def main(host, port):
-    """Starts the Currency Agent server."""
+    """Starts the News Agent server."""
     try:
         capabilities = AgentCapabilities(streaming=False, pushNotifications=True)
         skill = AgentSkill(
-            id="convert_currency",
-            name="Currency Exchange Rates Tool",
-            description="Helps with exchange values between various currencies",
-            tags=["currency conversion", "currency exchange"],
-            examples=["What is exchange rate between USD and GBP?"],
+            id="new_summary",
+            name="News Summary Tool",
+            description="Helps with news summaries and catcategorization of news",
+            tags=["news summary", "news category"],
+            examples=["RSS Feed URL"],
         )
         agent_card = AgentCard(
-            name="Currency Agent",
-            description="Helps with exchange rates for currencies",
+            name="News Agent",
+            description="Helps with news summaries and news categorization",
             url=f"http://{host}:{port}/",
             version="1.0.0",
-            defaultInputModes=CurrencyAgent.SUPPORTED_CONTENT_TYPES,
-            defaultOutputModes=CurrencyAgent.SUPPORTED_CONTENT_TYPES,
+            defaultInputModes=NewsAgent.SUPPORTED_CONTENT_TYPES,
+            defaultOutputModes=NewsAgent.SUPPORTED_CONTENT_TYPES,
             capabilities=capabilities,
             skills=[skill],
         )
@@ -39,7 +39,7 @@ def main(host, port):
         notification_sender_auth.generate_jwk()
         server = A2AServer(
             agent_card=agent_card,
-            task_manager=AgentTaskManager(agent=CurrencyAgent(), notification_sender_auth=None),
+            task_manager=AgentTaskManager(agent=NewsAgent(), notification_sender_auth=None),
             host=host,
             port=port,
         )

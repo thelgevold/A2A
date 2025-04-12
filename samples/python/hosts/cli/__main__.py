@@ -7,7 +7,7 @@ from uuid import uuid4
 import urllib
 
 @click.command()
-@click.option("--agent", default="http://localhost:10000")
+@click.option("--agent", default="http://localhost:10001")
 @click.option("--session", default=0)
 @click.option("--history", default=False)
 @click.option("--use_push_notifications", default=False)
@@ -23,17 +23,17 @@ async def cli(agent, session, history, use_push_notifications: bool, push_notifi
     notification_receiver_host = notif_receiver_parsed.hostname
     notification_receiver_port = notif_receiver_parsed.port
 
-    if use_push_notifications:
-        from hosts.cli.push_notification_listener import PushNotificationListener
-        notification_receiver_auth = PushNotificationReceiverAuth()
-        await notification_receiver_auth.load_jwks(f"{agent}/.well-known/jwks.json")
+    # if use_push_notifications:
+    #     from hosts.cli.push_notification_listener import PushNotificationListener
+    #     notification_receiver_auth = PushNotificationReceiverAuth()
+    #     await notification_receiver_auth.load_jwks(f"{agent}/.well-known/jwks.json")
 
-        push_notification_listener = PushNotificationListener(
-            host = notification_receiver_host,
-            port = notification_receiver_port,
-            notification_receiver_auth=notification_receiver_auth,
-        )
-        push_notification_listener.start()
+    #     push_notification_listener = PushNotificationListener(
+    #         host = notification_receiver_host,
+    #         port = notification_receiver_port,
+    #         notification_receiver_auth=notification_receiver_auth,
+    #     )
+    #     push_notification_listener.start()
         
     client = A2AClient(agent_card=card)
     if session == 0:

@@ -31,6 +31,7 @@ class A2AClient:
         else:
             raise ValueError("Must provide either agent_card or url")
 
+        print(f"self.url {self.url}")
     async def send_task(self, payload: dict[str, Any]) -> SendTaskResponse:
         request = SendTaskRequest(params=payload)
         return SendTaskResponse(**await self._send_request(request))
@@ -55,11 +56,14 @@ class A2AClient:
         async with httpx.AsyncClient() as client:
             try:
                 # Image generation could take time, adding timeout
+                print(self.url)
+                print(request.model_dump())
                 response = await client.post(
-                    self.url, json=request.model_dump(), timeout=30
+                    self.url, json=request.model_dump(), timeout=600
                 )
                 response.raise_for_status()
-                return response.json()
+                r = response.json()
+                return r
             except httpx.HTTPStatusError as e:
                 raise A2AClientHTTPError(e.response.status_code, str(e)) from e
             except json.JSONDecodeError as e:
