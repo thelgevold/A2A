@@ -75,31 +75,31 @@ class CurrencyAgent:
         self.graph.invoke({"messages": [("user", query)]}, config)        
         return self.get_agent_response(config)
       
-    # async def stream(self, query, sessionId) -> AsyncIterable[Dict[str, Any]]:
-    #     inputs = {"messages": [("user", query)]}
-    #     config = {"configurable": {"thread_id": sessionId}}
+    async def stream(self, query, sessionId) -> AsyncIterable[Dict[str, Any]]:
+        inputs = {"messages": [("user", query)]}
+        config = {"configurable": {"thread_id": sessionId}}
 
-    #     for item in self.graph.stream(inputs, config, stream_mode="values"):
-    #         message = item["messages"][-1]
+        for item in self.graph.stream(inputs, config, stream_mode="values"):
+            message = item["messages"][-1]
           
-    #         if (
-    #             isinstance(message, AIMessage)
-    #             #and message.tool_calls
-    #             #and len(message.tool_calls) > 0
-    #         ):
-    #             yield {
-    #                 "is_task_complete": False,
-    #                 "require_user_input": False,
-    #                 "content": "Looking up the exchange rates...",
-    #             }
-    #         elif isinstance(message, ToolMessage):
-    #             yield {
-    #                 "is_task_complete": False,
-    #                 "require_user_input": False,
-    #                 "content": "Processing the exchange rates..",
-    #             }            
+            if (
+                isinstance(message, AIMessage)
+                #and message.tool_calls
+                #and len(message.tool_calls) > 0
+            ):
+                yield {
+                    "is_task_complete": False,
+                    "require_user_input": False,
+                    "content": "Looking up the exchange rates...",
+                }
+            elif isinstance(message, ToolMessage):
+                yield {
+                    "is_task_complete": False,
+                    "require_user_input": False,
+                    "content": "Processing the exchange rates..",
+                }            
         
-    #     yield self.get_agent_response(config)
+        yield self.get_agent_response(config)
 
         
     def get_agent_response(self, config):

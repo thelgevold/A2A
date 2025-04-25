@@ -2,11 +2,20 @@ import xml.etree.ElementTree as ET
 import requests
 import json
 from langchain_core.messages import AIMessage
-
+from langgraph.types import interrupt
 from state import GraphState
 
+def get_rss_link(state: GraphState):
+    value = interrupt(
+       {
+          "question": "Please provide an rss link to load"
+       }
+    )
+
+    return {"messages": [value]}
+ 
 def get_rss_feed(state: GraphState):
-    role, url = state['messages'][0]
+    url = state['messages'][0]
     response = requests.get(url)
 
     return {"data": response.text, "messages": [AIMessage(content="Completed getting RSS feed")]}

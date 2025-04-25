@@ -4,9 +4,10 @@ from pydantic import BaseModel
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import AIMessage, ToolMessage
+from langgraph.types import Command
 
 from model import init_llm_with_tool_calling, init_llm
-from nodes.rss_tools import get_rss_links, get_rss_feed
+from nodes.rss_tools import get_rss_links, get_rss_feed, get_rss_link
 from nodes.url_tools import load_links
 from state import GraphState
 from tools.category_tools import get_article_categories
@@ -30,6 +31,7 @@ class NewsAgent:
 
     def __init__(self):
         graph_builder=StateGraph(GraphState)
+        graph_builder.add_node("get_rss_link", get_rss_link)
         graph_builder.add_node("get_rss_feed", get_rss_feed)
         graph_builder.add_node("get_rss_links", get_rss_links)
         graph_builder.add_node("load_links", load_links)
@@ -37,7 +39,8 @@ class NewsAgent:
         graph_builder.add_node("execute_tools", execute_tools)
         graph_builder.add_node("get_categories", get_categories)
 
-        graph_builder.add_edge(START, "get_rss_feed")  
+        graph_builder.add_edge(START, "get_rss_link")  
+        graph_builder.add_edge("get_rss_link", "get_rss_feed")  
         graph_builder.add_edge("get_rss_feed", "get_rss_links" )
         graph_builder.add_edge("get_rss_links", "load_links")
         graph_builder.add_edge("load_links", "generate_summary")
@@ -49,25 +52,37 @@ class NewsAgent:
 
         print(self.graph.get_graph().draw_ascii())
 
-    def invoke(self, query, sessionId) -> str:
+    def invoke(self, query, sessionId, resume) -> str:
         config = {"configurable": {"thread_id": sessionId}}
-
         news_ctx = NewsContext(rss_feed=query)
-        self.graph.invoke({"data": news_ctx.rss_feed}, config)
-      
+        #self.graph.invoke({"data": news_ctx.rss_feed}, config)
+        
+        if resume == True:
+            self.graph.invoke(Command(resume=query), config=config)
+
+        else:
+            news_ctx = NewsContext(rss_feed=query)
+            self.graph.invoke({"data": news_ctx.rss_feed}, config)
+            return {
+                    "is_task_complete": False,
+                    "require_user_input": True,
+                    "content": "Please specify an RSS url for me to call"
+                }
+
         return self.get_agent_response(config=config)
     
     async def stream(self, query, sessionId) -> AsyncIterable[Dict[str, Any]]:
-        inputs = {"messages": [("user", query)]}
+        structured_response = ResponseFormat(status="input_required", message="Please provide an rss link")
+        inputs = {"messages": [{"structured_response": structured_response}], "structured_response": structured_response}
         config = {"configurable": {"thread_id": sessionId}}
 
         for item in self.graph.stream(inputs, config, stream_mode="values"):
             message = item["messages"][-1]
-          
+
             if isinstance(message, AIMessage):
                 yield {
                     "is_task_complete": False,
-                    "require_user_input": False,
+                    "require_user_input": True,
                     "content": message.content,
                 }
             elif isinstance(message, ToolMessage):
@@ -82,7 +97,7 @@ class NewsAgent:
     def get_agent_response(self, config):
         current_state = self.graph.get_state(config)     
         structured_response = current_state.values.get('structured_response')
- 
+
         if structured_response and isinstance(structured_response, ResponseFormat): 
             if structured_response.status == "input_required":
                 return {

@@ -119,6 +119,7 @@ class AgentTaskManager(InMemoryTaskManager):
         return None
 
      async def on_send_task(self, request):
+        
         task_send_params: TaskSendParams = request.params
         query = self._get_user_query(task_send_params)
 
@@ -128,7 +129,7 @@ class AgentTaskManager(InMemoryTaskManager):
         )
 
         try:
-            agent_response = self.agent.invoke(query, task_send_params.sessionId)
+            agent_response = self.agent.invoke(query, task_send_params.sessionId, request.params.resume)
         except Exception as e:
             logger.error(f"Error invoking agent: {e}")
             traceback.print_exc()
@@ -141,6 +142,7 @@ class AgentTaskManager(InMemoryTaskManager):
         self, request: SendTaskStreamingRequest
     ) -> AsyncIterable[SendTaskStreamingResponse] | JSONRPCResponse:
         try:
+            print(request.params)
             error = self._validate_request(request)
             if error:
                 return error

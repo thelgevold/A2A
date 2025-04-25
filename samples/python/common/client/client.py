@@ -56,8 +56,6 @@ class A2AClient:
         async with httpx.AsyncClient() as client:
             try:
                 # Image generation could take time, adding timeout
-                print(self.url)
-                print(request.model_dump())
                 response = await client.post(
                     self.url, json=request.model_dump(), timeout=600
                 )

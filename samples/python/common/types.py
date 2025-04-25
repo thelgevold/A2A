@@ -134,6 +134,7 @@ class TaskSendParams(BaseModel):
     pushNotification: PushNotificationConfig | None = None
     historyLength: int | None = None
     metadata: dict[str, Any] | None = None
+    resume: bool
 
 
 class TaskPushNotificationConfig(BaseModel):

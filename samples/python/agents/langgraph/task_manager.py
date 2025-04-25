@@ -184,8 +184,6 @@ class AgentTaskManager(InMemoryTaskManager):
     ) -> SendTaskResponse:
         """Processes the agent's response and updates the task store."""
         
-        print("RUNNING _process_agent_response")
-        
         task_send_params: TaskSendParams = request.params
         task_id = task_send_params.id
         history_length = task_send_params.historyLength
@@ -206,7 +204,6 @@ class AgentTaskManager(InMemoryTaskManager):
         )
         task_result = self.append_task_history(task, history_length)
         await self.send_task_notification(task)
-        print(f"Here is the task result {task_result}")
         return SendTaskResponse(id=request.id, result=task_result)
     
     def _get_user_query(self, task_send_params: TaskSendParams) -> str:

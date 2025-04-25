@@ -1,7 +1,7 @@
 import asyncio
 import threading
 
-from common.utils.push_notification_auth import PushNotificationReceiverAuth
+from A2A.samples.python.common.utils.push_notification_auth import PushNotificationReceiverAuth
 
 from starlette.applications import Starlette
 from starlette.requests import Request

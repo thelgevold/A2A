@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def main(host, port):
     """Starts the Currency Agent server."""
     try:
-        capabilities = AgentCapabilities(streaming=False, pushNotifications=True)
+        capabilities = AgentCapabilities(streaming=True, pushNotifications=True)
         skill = AgentSkill(
             id="convert_currency",
             name="Currency Exchange Rates Tool",
@@ -39,7 +39,7 @@ def main(host, port):
         notification_sender_auth.generate_jwk()
         server = A2AServer(
             agent_card=agent_card,
-            task_manager=AgentTaskManager(agent=CurrencyAgent(), notification_sender_auth=None),
+            task_manager=AgentTaskManager(agent=CurrencyAgent(), notification_sender_auth=notification_sender_auth),
             host=host,
             port=port,
         )

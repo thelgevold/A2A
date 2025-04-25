@@ -65,13 +65,17 @@ class A2AServer:
         try:
             print("PROCESS REQUEST")
             body = await request.json()
+            print(body)
             json_rpc_request = A2ARequest.validate_python(body)
 
             if isinstance(json_rpc_request, GetTaskRequest):
+                print("on_get_task")
                 result = await self.task_manager.on_get_task(json_rpc_request)
             elif isinstance(json_rpc_request, SendTaskRequest):
+                print("on_send_task")
                 result = await self.task_manager.on_send_task(json_rpc_request)
             elif isinstance(json_rpc_request, SendTaskStreamingRequest):
+                print("on_send_task_subscribe")
                 result = await self.task_manager.on_send_task_subscribe(
                     json_rpc_request
                 )
