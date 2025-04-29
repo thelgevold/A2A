@@ -12,10 +12,11 @@ def get_rss_link(state: GraphState):
        }
     )
 
-    return {"messages": [value]}
+    return {"rss_url": value}
  
 def get_rss_feed(state: GraphState):
-    url = state['messages'][0]
+    print(state)
+    url = state['rss_url']
     response = requests.get(url)
 
     return {"data": response.text, "messages": [AIMessage(content="Completed getting RSS feed")]}

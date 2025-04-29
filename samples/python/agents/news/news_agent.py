@@ -14,6 +14,8 @@ from tools.category_tools import get_article_categories
 from dtos.news_context import NewsContext
 from dtos.news_result import NewsResult
 
+from langgraph.types import interrupt
+
 import json
 
 tools = [get_article_categories]
@@ -54,20 +56,21 @@ class NewsAgent:
 
     def invoke(self, query, sessionId, resume) -> str:
         config = {"configurable": {"thread_id": sessionId}}
-        news_ctx = NewsContext(rss_feed=query)
-        #self.graph.invoke({"data": news_ctx.rss_feed}, config)
-        
+       
         if resume == True:
             self.graph.invoke(Command(resume=query), config=config)
 
         else:
-            news_ctx = NewsContext(rss_feed=query)
-            self.graph.invoke({"data": news_ctx.rss_feed}, config)
+            self.graph.invoke({"data": query}, config)
+            current_state = self.graph.get_state(config)  
+
+            question = current_state.tasks[0].interrupts[0].value["question"]
+
             return {
                     "is_task_complete": False,
                     "require_user_input": True,
-                    "content": "Please specify an RSS url for me to call"
-                }
+                    "content": question
+                    }
 
         return self.get_agent_response(config=config)
     
@@ -152,28 +155,17 @@ def get_categories(state: GraphState):
         
         request = [SystemMessage(content=content)]
         categories = model.invoke(request)
-        article["tool_call_raw"] = categories.content
+        article["tool_call_raw"] = categories.tool_calls[0]
 
     return {"tool": content, "messages": [ToolMessage(content="Completed getting tool calls from LLM", tool_call_id="567")]}
-
-def parse_tool_call(article):
-        start_index = article["tool_call_raw"].find("{")
-        end_index = article["tool_call_raw"].rfind("}") + 1
-        json_str = article["tool_call_raw"][start_index:end_index]
-
-        data = json.loads(json_str)
-        
-        article["tool_name"] = data.get("name")
-        categories = data.get("arguments", {}).get("article_categories")
-        article["tool_argument"] = {"article_categories": categories}
 
 def execute_tools(state: GraphState):
     articles = state["articles"]
    
     for article in articles:
-        parse_tool_call(article)
-
-        article["tool_result"] = tools_names[article["tool_name"]].invoke(article["tool_argument"])
+        tool_call = article["tool_call_raw"]
+   
+        article["tool_result"] = tools_names[tool_call["name"]].invoke(tool_call["args"]) 
               
     res = [NewsResult(r).to_dict() for r in articles]    
     res_json = json.dumps(res)  

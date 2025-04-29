@@ -20,13 +20,13 @@ def main(host, port):
         skill = AgentSkill(
             id="new_summary",
             name="News Summary Tool",
-            description="Helps with news summaries and catcategorization of news",
-            tags=["news summary", "news category"],
-            examples=["RSS Feed URL"],
+            description="Helps with news summaries and catcategorization of news.",
+            tags=["news summary"],
+            examples=["News summary"],
         )
         agent_card = AgentCard(
             name="News Agent",
-            description="Helps with news summaries and news categorization",
+            description="Helps generate news summaries. This agent only generates news summaries. Do not use this agent for anything other than generating news summaries.",
             url=f"http://{host}:{port}/",
             version="1.0.0",
             defaultInputModes=NewsAgent.SUPPORTED_CONTENT_TYPES,

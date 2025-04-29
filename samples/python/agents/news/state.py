@@ -23,5 +23,6 @@ class GraphState(TypedDict):
     articles: list[dict]
     structured_response: dict
     data: str
-    human_action: any
-    rss_link: str
+    question: any
+    rss_url: str
+    query: str
