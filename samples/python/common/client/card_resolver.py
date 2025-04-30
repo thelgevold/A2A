@@ -11,7 +11,7 @@ class A2ACardResolver:
         self.base_url = base_url.rstrip("/")
         self.agent_card_path = agent_card_path.lstrip("/")
 
-        print(self.base_url + "/" + self.agent_card_path)
+        print(f"System: Getting agent card for agent at {self.base_url}/{self.agent_card_path}")
 
     def get_agent_card(self) -> AgentCard:
         with httpx.Client() as client:

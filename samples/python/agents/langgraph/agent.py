@@ -9,7 +9,6 @@ import json
 
 memory = MemorySaver()
 
-from tool_call_helper import extract_tool_cals
 from model import init_llm, get_exchange_rate
 
 class GraphState(TypedDict):
@@ -24,7 +23,9 @@ def query(state: GraphState):
 
     structured_response = ResponseFormat(message=res.content, status="completed")
 
-    return {"messages": [AIMessage(content=res.content)], "structured_response": structured_response}
+    print(f"TOOL CALL {res.tool_calls}")
+
+    return {"messages": [res.tool_calls[0]], "structured_response": structured_response}
 
 tools = [get_exchange_rate]
 tools_names = {t.name: t for t in tools}
@@ -40,9 +41,11 @@ class ResponseFormat(BaseModel):
 def execute_tool_node(state: GraphState):
     messages = state["messages"]
     
-    tool_call = extract_tool_cals(messages[0].content)[0]
+    print(messages[0])
 
-    res = tools_names[tool_call["name"]].invoke(tool_call["arguments"])
+    tool_call = messages[0]
+
+    res = tools_names[tool_call["name"]].invoke(tool_call["args"])
     structured_response = ResponseFormat(message=json.dumps(res), status="completed")
     return {"messages": [ToolMessage(artifact=res, content=res, tool_call_id="esdads")], "structured_response": structured_response}
     
@@ -74,33 +77,6 @@ class CurrencyAgent:
         print(f"THE sessionID is {sessionId}")
         self.graph.invoke({"messages": [("user", query)]}, config)        
         return self.get_agent_response(config)
-      
-    async def stream(self, query, sessionId) -> AsyncIterable[Dict[str, Any]]:
-        inputs = {"messages": [("user", query)]}
-        config = {"configurable": {"thread_id": sessionId}}
-
-        for item in self.graph.stream(inputs, config, stream_mode="values"):
-            message = item["messages"][-1]
-          
-            if (
-                isinstance(message, AIMessage)
-                #and message.tool_calls
-                #and len(message.tool_calls) > 0
-            ):
-                yield {
-                    "is_task_complete": False,
-                    "require_user_input": False,
-                    "content": "Looking up the exchange rates...",
-                }
-            elif isinstance(message, ToolMessage):
-                yield {
-                    "is_task_complete": False,
-                    "require_user_input": False,
-                    "content": "Processing the exchange rates..",
-                }            
-        
-        yield self.get_agent_response(config)
-
         
     def get_agent_response(self, config):
         current_state = self.graph.get_state(config)     

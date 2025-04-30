@@ -11,10 +11,7 @@ from nodes.rss_tools import get_rss_links, get_rss_feed, get_rss_link
 from nodes.url_tools import load_links
 from state import GraphState
 from tools.category_tools import get_article_categories
-from dtos.news_context import NewsContext
 from dtos.news_result import NewsResult
-
-from langgraph.types import interrupt
 
 import json
 
@@ -73,29 +70,6 @@ class NewsAgent:
                     }
 
         return self.get_agent_response(config=config)
-    
-    async def stream(self, query, sessionId) -> AsyncIterable[Dict[str, Any]]:
-        structured_response = ResponseFormat(status="input_required", message="Please provide an rss link")
-        inputs = {"messages": [{"structured_response": structured_response}], "structured_response": structured_response}
-        config = {"configurable": {"thread_id": sessionId}}
-
-        for item in self.graph.stream(inputs, config, stream_mode="values"):
-            message = item["messages"][-1]
-
-            if isinstance(message, AIMessage):
-                yield {
-                    "is_task_complete": False,
-                    "require_user_input": True,
-                    "content": message.content,
-                }
-            elif isinstance(message, ToolMessage):
-                yield {
-                    "is_task_complete": False,
-                    "require_user_input": False,
-                    "content": message.content,
-                }            
-        
-        yield self.get_agent_response(config)
     
     def get_agent_response(self, config):
         current_state = self.graph.get_state(config)     
